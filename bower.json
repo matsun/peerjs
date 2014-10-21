@@ -3,15 +3,17 @@
   "version": "socket_adaptor",
   "homepage": "https://github.com/matsun/peerjs",
   "description": "fork of peer.js",
-  "main": "peer.js",
+  "main": "dist/peer.js",
   "private": true,
   "ignore": [
     "**/.*",
-    "dist",
     "docs",
     "lib",
     "examples",
     "node_modules",
-    "tests"
+    "test",
+    "Gruntfile.js",
+    "Makefile",
+    "package.json",
   ]
 }
