@@ -1,4 +1,4 @@
-/*! peerjs build:0.3.13, development. Copyright(c) 2013 Michelle Bu <michelle@michellebu.com> */(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*! peerjs build:0.3.14, development. Copyright(c) 2013 Michelle Bu <michelle@michellebu.com> */(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports.RTCSessionDescription = window.RTCSessionDescription ||
 	window.mozRTCSessionDescription;
 module.exports.RTCPeerConnection = window.RTCPeerConnection ||
@@ -804,7 +804,7 @@ util.inherits(Peer, EventEmitter);
 // websockets.)
 Peer.prototype._initializeServerConnection = function() {
   var self = this;
-  this.socket = new Socket(this.options.secure, this.options.host, this.options.port, this.options.path, this.options.key);
+  this.socket = new Socket(this.options.secure, this.options.host, this.options.port, this.options.path, this.options.key, this.options.socketAdaptor);
   this.socket.on('message', function(data) {
     self._handleMessage(data);
   });
@@ -1202,10 +1202,16 @@ var EventEmitter = require('eventemitter3');
  * An abstraction on top of WebSockets and XHR streaming to provide fastest
  * possible connection for peers.
  */
-function Socket(secure, host, port, path, key) {
+function Socket(secure, host, port, path, key, socketAdaptor) {
+
   if (!(this instanceof Socket)) return new Socket(secure, host, port, path, key);
 
   EventEmitter.call(this);
+
+  if (socketAdaptor) {
+    this.socketAdaptor = socketAdaptor;
+    return;
+  }
 
   // Disconnected manually.
   this.disconnected = false;
@@ -1223,6 +1229,10 @@ util.inherits(Socket, EventEmitter);
 /** Check in with ID or get one from server. */
 Socket.prototype.start = function(id, token) {
   this.id = id;
+
+  if (this.socketAdaptor) {
+    return;
+  }
 
   this._httpUrl += '/' + id + '/' + token;
   this._wsUrl += '&id=' + id + '&token=' + token;
@@ -1372,10 +1382,16 @@ Socket.prototype._sendQueuedMessages = function() {
 }
 
 /** Exposed send for DC & Peer. */
-Socket.prototype.send = function(data) {
+Socket.prototype.send = function(data) {  
   if (this.disconnected) {
     return;
   }
+
+  if (this.socketAdaptor) {
+    this.adaptor.sendPeerMessage(data);
+    return;
+  }
+
 
   // If we didn't get an ID yet, we can't yet send anything so we should queue
   // up these messages.
@@ -1402,6 +1418,10 @@ Socket.prototype.send = function(data) {
 }
 
 Socket.prototype.close = function() {
+  if (this.socketAdaptor) {
+    return;
+  }
+  
   if (!this.disconnected && this._wsOpen()) {
     this._socket.close();
     this.disconnected = true;
