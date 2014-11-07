@@ -1388,7 +1388,7 @@ Socket.prototype.send = function(data) {
   }
 
   if (this.socketAdaptor) {
-    this.adaptor.sendPeerMessage(data);
+    this.socketAdaptor.sendPeerMessage(data);
     return;
   }
 
